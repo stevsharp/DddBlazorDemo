@@ -1,0 +1,115 @@
+@page "/invoices"
+@inject DddBlazorDemo.Application.Cqrs.IDispatcher Dispatcher
+@using DddBlazorDemo.Application.Cqrs
+@using DddBlazorDemo.Application.ReadModels
+@using DddBlazorDemo.Billing.Application.Commands
+@using DddBlazorDemo.Billing.Application.Queries
+
+<h3>Invoices</h3>
+
+<div style="margin-bottom: 12px;">
+    <input placeholder="Invoice number" @bind="NewNumber" />
+    <input placeholder="Provider EAN" @bind="NewProviderEan" />
+    <input placeholder="Currency (EUR)" @bind="NewCurrency" style="width: 90px;" />
+    <button @onclick="Create">Create</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <p style="color: crimson;">@Error</p>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Number</th>
+            <th>Provider</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var i in invoices)
+        {
+            <tr>
+                <td>@i.Number</td>
+                <td>@i.ProviderEan</td>
+                <td>@i.Status</td>
+                <td>@i.TotalAmount @i.CurrencyCode</td>
+                <td>
+                    <button @onclick="() => AddLine(i.Id)">Add line</button>
+                    <button disabled="@(i.Status != "Draft")" @onclick="() => Validate(i.Id)">Validate</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<InvoiceListItemDto> invoices = new();
+    private string? Error;
+
+    private string NewNumber = "INV-1001";
+    private string NewProviderEan = "7601000237088";
+    private string NewCurrency = "EUR";
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        var result = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(
+            new ListInvoicesQuery(), CancellationToken.None);
+
+        invoices = result.ToList();
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            Error = null;
+
+            await Dispatcher.Send<CreateInvoiceCommand, Guid>(
+                new CreateInvoiceCommand(NewNumber, NewProviderEan, NewCurrency),
+                CancellationToken.None);
+
+            await Reload();
+        }
+        catch (Exception ex) { Error = ex.Message; }
+    }
+
+    private async Task AddLine(Guid invoiceId)
+    {
+        try
+        {
+            Error = null;
+
+            await Dispatcher.Send<AddInvoiceLineCommand, Unit>(
+                new AddInvoiceLineCommand(invoiceId, "Service", 50m),
+                CancellationToken.None);
+
+            await Reload();
+        }
+        catch (Exception ex) { 
+            Error = ex.Message; 
+
+            Console.WriteLine(ex);
+        }
+    }
+
+    private async Task Validate(Guid invoiceId)
+    {
+        try
+        {
+            Error = null;
+
+            await Dispatcher.Send<ValidateInvoiceCommand, Unit>(
+                new ValidateInvoiceCommand(invoiceId),
+                CancellationToken.None);
+
+            await Reload();
+        }
+        catch (Exception ex) { Error = ex.Message; }
+    }
+}

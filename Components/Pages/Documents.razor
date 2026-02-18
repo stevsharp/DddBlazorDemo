@@ -1,0 +1,47 @@
+@page "/documents"
+@inject DddBlazorDemo.Application.Cqrs.IDispatcher Dispatcher
+@using DddBlazorDemo.Application.ReadModels
+@using DddBlazorDemo.Documents.Application.Queries
+
+<h3>Documents</h3>
+
+<p>
+    Create and validate an invoice in <a href="invoices">Invoices</a>,
+    then refresh this page after a second or two to see the outbox-created document.
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>File</th>
+            <th>InvoiceId</th>
+            <th>PDF Up To Date</th>
+            <th>Workflow</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var d in documents)
+        {
+            <tr>
+                <td>@d.FileName</td>
+                <td>@d.InvoiceId</td>
+                <td>@d.IsPdfUpToDate</td>
+                <td>@d.WorkflowStatus</td>
+                <td>@d.CreatedAtUtc.ToLocalTime()</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<DocumentListItemDto> documents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Dispatcher.Query<ListDocumentsQuery, IReadOnlyList<DocumentListItemDto>>(
+            new ListDocumentsQuery(), CancellationToken.None);
+
+        documents = result.ToList();
+    }
+}
