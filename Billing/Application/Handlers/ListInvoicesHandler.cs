@@ -21,6 +21,6 @@ public sealed class ListInvoicesHandler(IDbContextFactory<AppDbContext> dbFactor
             .OrderByDescending(x => x.Id)
             .ToListAsync(ct),ct);  
 
-        return invoices.Select(_mapper.Map<InvoiceListItemDto>).ToList();
+        return [.. invoices.Select(_mapper.Map<InvoiceListItemDto>)];
     }
 }
