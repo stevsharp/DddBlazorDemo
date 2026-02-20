@@ -17,4 +17,10 @@
     <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DddBlazorDemo.Application\DddBlazorDemo.Application.csproj" />
+    <ProjectReference Include="..\DddBlazorDemo.Domain\DddBlazorDemo.Domain.csproj" />
+    <ProjectReference Include="..\DddBlazorDemo.Infrastructure\DddBlazorDemo.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
