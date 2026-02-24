@@ -1,13 +1,10 @@
 using DddBlazorDemo.SharedKernel;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DddBlazorDemo.Infrastructure.DomainEvents;
 
-public sealed class DomainEventInvoker
+public sealed class DomainEventInvoker(IServiceProvider sp)
 {
-    private readonly IServiceProvider _sp;
-
-    public DomainEventInvoker(IServiceProvider sp) => _sp = sp;
+    private readonly IServiceProvider _sp = sp;
 
     public async Task InvokeAsync(IDomainEvent evt, CancellationToken ct)
     {
@@ -17,7 +14,9 @@ public sealed class DomainEventInvoker
         foreach (var handler in handlers)
         {
             var method = handlerType.GetMethod("HandleAsync")!;
-            var task = (Task)method.Invoke(handler, new object[] { evt, ct })!;
+
+            var task = (Task)method.Invoke(handler, [evt, ct])!;
+
             await task;
         }
     }
