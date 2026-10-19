@@ -4,6 +4,8 @@ namespace DddBlazorDemo.Billing.Domain;
 
 public sealed class InvoiceLine
 {
+    public const int MaxDescriptionLength = 200;
+
     private InvoiceLine() { }
 
     public Guid Id { get; private set; }
@@ -12,11 +14,11 @@ public sealed class InvoiceLine
 
     public InvoiceLine(Guid id, string description, Money amount)
     {
-        if (string.IsNullOrWhiteSpace(description)) throw new DomainException("Line description is required.");
-        if (amount.Amount <= 0) throw new DomainException("Line amount must be positive.");
+        Id = Guard.NotEmpty(id, "Line id");
+        Description = Guard.MaxLength(Guard.NotBlank(description, "Line description"), MaxDescriptionLength, "Line description");
 
-        Id = id;
-        Description = description.Trim();
+        Guard.NotNull(amount, "Line amount");
+        Guard.Positive(amount.Amount, "Line amount");
         Amount = amount;
     }
 }

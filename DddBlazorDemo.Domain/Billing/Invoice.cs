@@ -5,6 +5,8 @@ namespace DddBlazorDemo.Billing.Domain;
 
 public sealed class Invoice : Entity, IAggregateRoot
 {
+    public const int MaxLines = 500;
+
     private readonly List<InvoiceLine> _lines = new();
     private Invoice() { }
     public Guid Id { get; private set; }
@@ -13,9 +15,7 @@ public sealed class Invoice : Entity, IAggregateRoot
     public InvoiceStatus Status { get; private set; } = InvoiceStatus.Draft;
 
     public Currency Currency { get; private set; } = Currency.EUR;
-    /// <summary>
-    /// 
-    /// </summary>
+
     public IReadOnlyList<InvoiceLine> Lines => _lines;
 
     public static Invoice Create(InvoiceNumber number, EanNumber providerEan, Currency currency)
@@ -23,17 +23,17 @@ public sealed class Invoice : Entity, IAggregateRoot
         return new Invoice
         {
             Id = Guid.NewGuid(),
-            Number = number,
-            ProviderEan = providerEan,
-            Currency = currency,
+            Number = Guard.NotNull(number, "Invoice number"),
+            ProviderEan = Guard.NotNull(providerEan, "Provider EAN"),
+            Currency = Guard.NotNull(currency, "Currency"),
             Status = InvoiceStatus.Draft
         };
     }
 
     public void AddLine(string description, decimal amount)
     {
-        if (Status != InvoiceStatus.Draft)
-            throw new DomainException("You can only edit lines while the invoice is Draft.");
+        EnsureDraft("You can only edit lines while the invoice is Draft.");
+        Guard.That(_lines.Count < MaxLines, $"An invoice cannot have more than {MaxLines} lines.");
 
         var money = new Money(amount, Currency);
 
@@ -51,15 +51,14 @@ public sealed class Invoice : Entity, IAggregateRoot
 
     public void Validate()
     {
-        if (Status != InvoiceStatus.Draft)
-            throw new DomainException("Invoice is already validated.");
+        EnsureDraft("Invoice is already validated.");
+        Guard.That(_lines.Count > 0, "Cannot validate an invoice without lines.");
 
-        if (_lines.Count == 0)
-            throw new DomainException("Cannot validate an invoice without lines.");
+        var total = Total();
+        Guard.That(total.Amount > 0, "Cannot validate an invoice with a zero total.");
 
         Status = InvoiceStatus.Validated;
 
-        var total = Total();
         AddDomainEvent(new InvoiceValidated(
             InvoiceId: Id,
             InvoiceNumber: Number.Value,
@@ -68,4 +67,6 @@ public sealed class Invoice : Entity, IAggregateRoot
             CurrencyCode: total.Currency.Code,
             OccurredAtUtc: DateTime.UtcNow));
     }
+
+    private void EnsureDraft(string message) => Guard.That(Status == InvoiceStatus.Draft, message);
 }
