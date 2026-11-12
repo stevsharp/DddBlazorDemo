@@ -23,3 +23,8 @@ dotnet run --project DddBlazorDemo/DddBlazorDemo.csproj
 
 The app creates a SQLite `app.db` next to the web project on first run (`EnsureCreated`, no migrations).
 Outbox polling settings live under the `Outbox` section of `appsettings.json`.
+
+
+## Connect with Me
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue)](https://www.linkedin.com/in/spyros-ponaris-913a6937/)
