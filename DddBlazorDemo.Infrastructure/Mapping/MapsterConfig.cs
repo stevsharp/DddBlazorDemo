@@ -1,6 +1,8 @@
 using DddBlazorDemo.Application.ReadModels;
 using DddBlazorDemo.Billing.Domain;
 using DddBlazorDemo.Documents.Domain;
+using DddBlazorDemo.Domain.Billing;
+
 using Mapster;
 
 namespace DddBlazorDemo.Infrastructure.Mapping;
@@ -24,5 +26,10 @@ public sealed class MapsterConfig : IRegister
             .Map(d => d.IsPdfUpToDate, s => s.IsPdfUpToDate)
             .Map(d => d.WorkflowStatus, s => s.WorkflowStatus.ToString())
             .Map(d => d.CreatedAtUtc, s => s.CreatedAtUtc);
+
+        config.NewConfig<Customer, CustomerListItemDto>()
+            .Map(d => d.Id, s => s.Id)
+            .Map(d => d.Name, s => s.Name)
+            .Map(d => d.Gln, s => s.Gln.Value);
     }
 }

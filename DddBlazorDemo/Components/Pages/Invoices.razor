@@ -1,22 +1,60 @@
-@page "/invoices"
+﻿@page "/invoices"
 @inject DddBlazorDemo.Application.Cqrs.IDispatcher Dispatcher
+@using DddBlazorDemo.Application.Billing.Queries
 @using DddBlazorDemo.Application.Cqrs
 @using DddBlazorDemo.Application.ReadModels
 @using DddBlazorDemo.Billing.Application.Commands
 @using DddBlazorDemo.Billing.Application.Queries
+@using DddBlazorDemo.SharedKernel
+
+<h5>Customers</h5>
+<div style="margin-bottom: 12px;">
+    <input placeholder="Customer name" @bind="NewCustomerName" />
+    <input placeholder="Customer GLN" @bind="NewCustomerGln" />
+    <button disabled="@IsBusy" @onclick="CreateCustomer">Add customer</button>
+</div>
 
 <h3>Invoices</h3>
 
 <div style="margin-bottom: 12px;">
+    <div style="margin-bottom: 12px;">
+        <select @bind="SelectedCustomerId">
+            <option value="">-- choose customer --</option>
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id">@c.Name (@c.Gln)</option>
+            }
+        </select>
+        <input placeholder="Invoice number" @bind="NewNumber" />
+        <input placeholder="Provider EAN" @bind="NewProviderEan" />
+        <input placeholder="Currency (EUR)" @bind="NewCurrency" style="width: 90px;" />
+        <button @onclick="Create">Create</button>
+    </div>
     <input placeholder="Invoice number" @bind="NewNumber" />
     <input placeholder="Provider EAN" @bind="NewProviderEan" />
     <input placeholder="Currency (EUR)" @bind="NewCurrency" style="width: 90px;" />
-    <button @onclick="Create">Create</button>
+    <button disabled="@IsBusy" @onclick="Create">Create</button>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(Error))
+@if (Message is not null)
 {
-    <p style="color: crimson;">@Error</p>
+    <div style="padding: 8px 12px; margin-bottom: 12px; border-radius: 4px;
+                    color: @(IsError ? "#842029" : "#0f5132");
+                    background: @(IsError ? "#f8d7da" : "#d1e7dd");
+                    border: 1px solid @(IsError ? "#f5c2c7" : "#badbcc");">
+        @Message
+        <button style="float: right; border: none; background: none; cursor: pointer;"
+                @onclick="() => Message = null">
+            ✕
+        </button>
+    </div>
+}
+
+@if (IsBusy)
+{
+    <div style="padding: 8px 12px; margin-bottom: 12px; color: #555;">
+        ⏳ Please wait…
+    </div>
 }
 
 <table class="table">
@@ -38,8 +76,8 @@
                 <td>@i.Status</td>
                 <td>@i.TotalAmount @i.CurrencyCode</td>
                 <td>
-                    <button @onclick="() => AddLine(i.Id)">Add line</button>
-                    <button disabled="@(i.Status != "Draft")" @onclick="() => Validate(i.Id)">Validate</button>
+                    <button disabled="@IsBusy" @onclick="() => AddLine(i.Id)">Add line</button>
+                    <button disabled="@(IsBusy || i.Status != "Draft")" @onclick="() => Validate(i.Id)">Validate</button>
                 </td>
             </tr>
         }
@@ -48,68 +86,114 @@
 
 @code {
     private List<InvoiceListItemDto> invoices = new();
-    private string? Error;
 
     private string NewNumber = "INV-1001";
     private string NewProviderEan = "7601000237088";
     private string NewCurrency = "EUR";
+    private bool IsBusy;
+    private List<CustomerListItemDto> customers = new();
+    private string NewCustomerName = "Acme AG";
+    private string NewCustomerGln = "7601000237088";
+    private string SelectedCustomerId = "";
+    private string? Error;
+    private string? Message;
+    private bool IsError;
 
     protected override async Task OnInitializedAsync() => await Reload();
 
     private async Task Reload()
     {
-        var result = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(
-            new ListInvoicesQuery(), CancellationToken.None);
-
-        invoices = result.ToList();
-    }
-
-    private async Task Create()
-    {
         try
         {
-            Error = null;
+            var result = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(
+                new ListInvoicesQuery(), CancellationToken.None);
 
-            await Dispatcher.Send<CreateInvoiceCommand, Guid>(
-                new CreateInvoiceCommand(NewNumber, NewProviderEan, NewCurrency),
-                CancellationToken.None);
+            invoices = result.ToList();
 
-            await Reload();
+            var customerResult = await Dispatcher.Query<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>(
+                new ListCustomersQuery(), CancellationToken.None);
+            customers = customerResult.ToList();
         }
-        catch (Exception ex) { Error = ex.Message; }
-    }
-
-    private async Task AddLine(Guid invoiceId)
-    {
-        try
+        catch (Exception ex)
         {
-            Error = null;
-
-            await Dispatcher.Send<AddInvoiceLineCommand, Unit>(
-                new AddInvoiceLineCommand(invoiceId, "Service", 50m),
-                CancellationToken.None);
-
-            await Reload();
-        }
-        catch (Exception ex) { 
-            Error = ex.Message; 
-
+            Error = ex.Message;
             Console.WriteLine(ex);
         }
+
     }
 
-    private async Task Validate(Guid invoiceId)
+    private async Task Run(Func<Task> action, string successMessage)
     {
+        if (IsBusy) return;
+        IsBusy = true;
+        Message = null;
         try
         {
-            Error = null;
-
-            await Dispatcher.Send<ValidateInvoiceCommand, Unit>(
-                new ValidateInvoiceCommand(invoiceId),
-                CancellationToken.None);
-
+            await action();
             await Reload();
+            IsError = false;
+            Message = successMessage;
+
+            var shown = Message;
+            _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() =>
+            {
+                if (Message == shown)
+                {
+                    Message = null;
+                    StateHasChanged();
+                }
+            }));
+            
         }
-        catch (Exception ex) { Error = ex.Message; }
+        catch (DomainException ex)        // business rule broken: show its message to the user
+        {
+            IsError = true;
+            Message = ex.Message;
+        }
+        catch (Exception ex)              // unexpected bug: log it, show a generic message
+        {
+            Console.WriteLine(ex);
+            IsError = true;
+            Message = "Something went wrong. Please try again.";
+        }
+        finally
+        {
+            IsBusy = false;               // always runs, success or error
+        }
     }
+
+    private Task Create()
+    {
+        Error = null;
+
+        if (!Guid.TryParse(SelectedCustomerId, out var customerId))
+        {
+            IsError = true;
+            Message = "Choose a customer first.";
+            return Task.CompletedTask;
+        }
+
+        return Run(() => Dispatcher.Send<CreateInvoiceCommand, Guid>(
+                new CreateInvoiceCommand(NewNumber, NewProviderEan, NewCurrency, customerId),
+                CancellationToken.None),  $"Invoice {NewNumber} created.");
+
+    }
+
+    private Task AddLine(Guid invoiceId) => Run(() => Dispatcher.Send<AddInvoiceLineCommand, Unit>(
+        new AddInvoiceLineCommand(invoiceId, "Service", 50m), CancellationToken.None),
+    "Line added.");
+
+    private Task Validate(Guid invoiceId) => Run(() => Dispatcher.Send<ValidateInvoiceCommand, Unit>(
+        new ValidateInvoiceCommand(invoiceId), CancellationToken.None),
+    "Invoice validated. The document will appear on the Documents page shortly.");
+
+    private Task CreateCustomer() => Run( async () => 
+    {
+        var id = await Dispatcher.Send<CreateCustomerCommand, Guid>(
+            new CreateCustomerCommand(NewCustomerName, NewCustomerGln),
+            CancellationToken.None);
+      
+        SelectedCustomerId = id.ToString();
+
+    }, $"Customer {NewCustomerName} added.");
 }

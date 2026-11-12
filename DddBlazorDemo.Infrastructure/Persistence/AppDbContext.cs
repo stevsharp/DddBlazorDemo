@@ -1,19 +1,23 @@
 using DddBlazorDemo.Billing.Domain;
 using DddBlazorDemo.Documents.Domain;
+using DddBlazorDemo.Domain.Billing;
 using DddBlazorDemo.Infrastructure.Outbox;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DddBlazorDemo.Infrastructure.Persistence;
 
-public sealed class AppDbContext : DbContext
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="modelBuilder"></param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var invoiceNumberConverter = new ValueConverter<InvoiceNumber, string>(
@@ -45,6 +49,16 @@ public sealed class AppDbContext : DbContext
             b.Property(x => x.Currency)
                 .HasConversion(currencyConverter)
                 .HasMaxLength(3);
+
+            // inside the Invoice block:
+            b.Property(x => x.CustomerId);
+            b.HasIndex(x => x.CustomerId);
+            b.HasOne<Customer>().WithMany().HasForeignKey(x => x.CustomerId); // FK only, no navigation
+            b.OwnsOne(x => x.BillTo, ob =>
+            {
+                ob.Property(p => p.Name).HasColumnName("BillToName").HasMaxLength(BillTo.MaxNameLength);
+                ob.Property(p => p.Gln).HasConversion(eanConverter).HasColumnName("BillToGln").HasMaxLength(20);
+            });
 
             b.Property(x => x.Status);
 
@@ -112,6 +126,15 @@ public sealed class AppDbContext : DbContext
             b.HasIndex(x => x.ProcessedAtUtc);
             b.HasIndex(x => x.OccurredAtUtc);
             b.HasIndex(x => x.LockedUntilUtc);
+        });
+
+        modelBuilder.Entity<Customer>(b =>
+        {
+            b.ToTable("Billing_Customers");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).ValueGeneratedNever();
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.Gln).HasConversion(eanConverter).HasMaxLength(20);
         });
 
         base.OnModelCreating(modelBuilder);

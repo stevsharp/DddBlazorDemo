@@ -1,4 +1,5 @@
 using DddBlazorDemo.Billing.Domain.Events;
+using DddBlazorDemo.Domain.Billing;
 using DddBlazorDemo.SharedKernel;
 
 namespace DddBlazorDemo.Billing.Domain;
@@ -13,12 +14,15 @@ public sealed class Invoice : Entity, IAggregateRoot
     public InvoiceNumber Number { get; private set; } = new("N/A");
     public EanNumber ProviderEan { get; private set; } = new("00000000");
     public InvoiceStatus Status { get; private set; } = InvoiceStatus.Draft;
-
+    public Guid CustomerId { get; private set; }
+    public BillTo BillTo { get; private set; } = null!;
     public Currency Currency { get; private set; } = Currency.EUR;
-
     public IReadOnlyList<InvoiceLine> Lines => _lines;
 
-    public static Invoice Create(InvoiceNumber number, EanNumber providerEan, Currency currency)
+    public static Invoice Create(InvoiceNumber number, 
+        EanNumber providerEan, 
+        Currency currency,
+        Guid customerId, BillTo billTo)
     {
         return new Invoice
         {
@@ -26,7 +30,9 @@ public sealed class Invoice : Entity, IAggregateRoot
             Number = Guard.NotNull(number, "Invoice number"),
             ProviderEan = Guard.NotNull(providerEan, "Provider EAN"),
             Currency = Guard.NotNull(currency, "Currency"),
-            Status = InvoiceStatus.Draft
+            Status = InvoiceStatus.Draft,
+            CustomerId = customerId,
+            BillTo = Guard.NotNull(billTo, "Bill-To")
         };
     }
 

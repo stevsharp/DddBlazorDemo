@@ -1,6 +1,9 @@
-﻿using DddBlazorDemo.Application.Cqrs;
+﻿using DddBlazorDemo.Application.Billing.Handlers;
+using DddBlazorDemo.Application.Billing.Queries;
+using DddBlazorDemo.Application.Cqrs;
 using DddBlazorDemo.Application.ReadModels;
 using DddBlazorDemo.Billing.Application;
+using DddBlazorDemo.Billing.Application.Commands;
 using DddBlazorDemo.Billing.Application.Queries;
 using DddBlazorDemo.Billing.Domain.Events;
 using DddBlazorDemo.Documents.Application;
@@ -11,8 +14,11 @@ using DddBlazorDemo.Infrastructure.Outbox;
 using DddBlazorDemo.Infrastructure.Persistence;
 using DddBlazorDemo.Infrastructure.Persistence.Queries;
 using DddBlazorDemo.Infrastructure.Persistence.Repositories;
+
 using Mapster;
+
 using MapsterMapper;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
-
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
         // Read side
         var mapsterConfig = new TypeAdapterConfig();
         mapsterConfig.Scan(typeof(MapsterConfig).Assembly);
@@ -40,6 +46,9 @@ public static class DependencyInjection
 
         services.AddScoped<IQueryHandler<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>, ListInvoicesHandler>();
         services.AddScoped<IQueryHandler<ListDocumentsQuery, IReadOnlyList<DocumentListItemDto>>, ListDocumentsHandler>();
+
+        services.AddScoped<ICommandHandler<CreateCustomerCommand, Guid>, CreateCustomerHandler>();
+        services.AddScoped<IQueryHandler<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>, ListCustomersHandler>();
 
         // Outbox + domain event dispatch
         services.AddSingleton(new DomainEventTypeRegistry()
