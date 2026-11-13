@@ -5,7 +5,7 @@ namespace DddBlazorDemo.Documents.Domain;
 /// <summary>
 /// Workflow: Created -> PdfGenerated -> ReadyToSend. Transitions only move forward.
 /// </summary>
-public sealed class Document : Entity, IAggregateRoot
+public sealed class Document : Entity, IAggregateRoot<Guid>
 {
     public const int MaxFileNameLength = 128;
 

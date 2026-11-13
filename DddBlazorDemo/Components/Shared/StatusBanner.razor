@@ -1,0 +1,22 @@
+@* Toast in the top-right corner for success / error; thin progress bar while busy. *@
+
+@if (IsBusy)
+{
+    <div class="busy-bar" role="progressbar" aria-label="Working"></div>
+}
+
+@if (Message is not null)
+{
+    <div class="toast @(IsError ? "toast-error" : "toast-success")" role="status">
+        <span class="toast-icon">@(IsError ? "✕" : "✓")</span>
+        <span class="toast-text">@Message</span>
+        <button type="button" class="toast-close" @onclick="OnClose" aria-label="Dismiss">✕</button>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public bool IsError { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}

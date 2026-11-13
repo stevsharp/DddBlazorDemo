@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<ICommandHandler<CreateInvoiceCommand, Guid>, CreateInvoiceHandler>();
         services.AddScoped<ICommandHandler<AddInvoiceLineCommand, Unit>, AddInvoiceLineHandler>();
         services.AddScoped<ICommandHandler<ValidateInvoiceCommand, Unit>, ValidateInvoiceHandler>();
+        services.AddScoped<ICommandHandler<CreateCustomerCommand, Guid>, CreateCustomerHandler>();
 
         // Domain event handlers (invoked by the outbox processor)
         services.AddScoped<IDomainEventHandler<InvoiceValidated>, InvoiceValidatedHandler>();

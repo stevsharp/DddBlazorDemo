@@ -1,10 +1,7 @@
-using DddBlazorDemo.Domain.Billing;
+using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Billing.Domain;
 
 namespace DddBlazorDemo.Billing.Application;
 
-public interface ICustomerRepository
-{
-    Task<Customer?> GetAsync(Guid id, CancellationToken ct);
-
-    void Add(Customer customer);
-}
+// No Remove: customers are deactivated, never deleted.
+public interface ICustomerRepository : IRepository<Customer, CustomerId> { }

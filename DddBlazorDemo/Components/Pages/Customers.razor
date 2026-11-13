@@ -1,0 +1,135 @@
+@page "/customers"
+@inherits CommandPage
+@inject IDispatcher Dispatcher
+@using DddBlazorDemo.Application.Billing.Queries
+@using DddBlazorDemo.Application.Cqrs
+@using DddBlazorDemo.Application.ReadModels
+@using DddBlazorDemo.Billing.Application.Commands
+
+<PageHeader Title="Customers" Subtitle="Who you invoice. Deactivated customers are hidden from this list.">
+    <Actions>
+        <button type="button" class="btn btn-primary" @onclick="() => form?.SetOpen(true)">+ New customer</button>
+    </Actions>
+</PageHeader>
+
+<StatusBanner IsBusy="IsBusy" Message="@Message" IsError="IsError" OnClose="ClearMessage" />
+
+<Collapsible @ref="form" Title="New customer" Hint="Click to open the form" Open="false">
+    <EditForm Model="Form" OnSubmit="CreateCustomer" FormName="newCustomer">
+        <fieldset disabled="@IsBusy">
+            <div class="form-grid">
+                <label class="field span-2">
+                    <span>Name <em>*</em></span>
+                    <InputText @bind-Value="Form.Name" placeholder="Acme AG" />
+                </label>
+                <label class="field">
+                    <span>VAT number <em>*</em></span>
+                    <InputText @bind-Value="Form.VatNumber" placeholder="EL123456789" />
+                </label>
+                <label class="field">
+                    <span>Country <em>*</em></span>
+                    <InputText @bind-Value="Form.CountryCode" maxlength="2" placeholder="GR" />
+                    <small class="help">2-letter ISO code</small>
+                </label>
+
+                <label class="field span-2">
+                    <span>Email <em>*</em></span>
+                    <InputText @bind-Value="Form.Email" type="email" placeholder="billing@acme.example" />
+                </label>
+                <label class="field span-2">
+                    <span>Phone</span>
+                    <InputText @bind-Value="Form.Phone" placeholder="+30 210 1234567" />
+                    <small class="help">Optional</small>
+                </label>
+
+                <label class="field span-2">
+                    <span>Street <em>*</em></span>
+                    <InputText @bind-Value="Form.Street" placeholder="Ermou 1" />
+                </label>
+                <label class="field">
+                    <span>City <em>*</em></span>
+                    <InputText @bind-Value="Form.City" placeholder="Athens" />
+                </label>
+                <label class="field">
+                    <span>Postal code <em>*</em></span>
+                    <InputText @bind-Value="Form.PostalCode" placeholder="10563" />
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save customer</button>
+                <button type="button" class="btn" @onclick="() => Form = new()">Clear</button>
+            </div>
+        </fieldset>
+    </EditForm>
+</Collapsible>
+
+<section class="card">
+    <h2 class="card-title">All customers <span class="count">@customers.Count</span></h2>
+
+    <DataGrid Items="customers" RowKey="c => c.Id">
+        <EmptyContent>
+            <div class="empty">
+                <div class="empty-icon">◉</div>
+                <p>No customers yet.</p>
+                <button type="button" class="btn btn-primary" @onclick="() => form?.SetOpen(true)">Add the first one</button>
+            </div>
+        </EmptyContent>
+        <ChildContent>
+            <GridColumn TItem="CustomerListItemDto" Title="Name" Value="c => c.Name">
+                <strong>@context.Name</strong>
+            </GridColumn>
+            <GridColumn TItem="CustomerListItemDto" Title="VAT" Value="c => c.VatNumber">
+                <code>@context.VatNumber</code>
+            </GridColumn>
+            <GridColumn TItem="CustomerListItemDto" Title="Contact" Value="c => c.Email" Sortable="false">
+                <a href="mailto:@context.Email">@context.Email</a>
+                @if (context.Phone is not null)
+                {
+                    <br /><span class="muted">@context.Phone</span>
+                }
+            </GridColumn>
+            <GridColumn TItem="CustomerListItemDto" Title="Location" Value="c => c.City">
+                @context.City <span class="muted">· @context.CountryCode</span>
+            </GridColumn>
+        </ChildContent>
+    </DataGrid>
+</section>
+
+@code {
+    private sealed class CustomerForm
+    {
+        public string Name { get; set; } = "";
+        public string VatNumber { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Street { get; set; } = "";
+        public string City { get; set; } = "";
+        public string PostalCode { get; set; } = "";
+        public string CountryCode { get; set; } = "GR";
+    }
+
+    private Collapsible? form;
+    private CustomerForm Form = new();
+    private List<CustomerListItemDto> customers = new();
+
+    protected override async Task Reload()
+    {
+        var result = await Dispatcher.Query<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>(
+            new ListCustomersQuery(), CancellationToken.None);
+        customers = result.ToList();
+    }
+
+    private Task CreateCustomer() => Run(async () =>
+        {
+            await Dispatcher.Send<CreateCustomerCommand, Guid>(
+                new CreateCustomerCommand(
+                    Form.Name, Form.VatNumber, Form.Email, Form.Phone,
+                    Form.Street, Form.City, Form.PostalCode, Form.CountryCode),
+                CancellationToken.None);
+
+            Form = new();
+            form?.SetOpen(false);
+        },
+        $"Customer {Form.Name} added.");
+}

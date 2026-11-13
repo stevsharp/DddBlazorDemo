@@ -1,10 +1,10 @@
+using DddBlazorDemo.Application.Cqrs;
 using DddBlazorDemo.Billing.Domain;
 
 namespace DddBlazorDemo.Billing.Application;
 
-public interface IInvoiceRepository
+public interface IInvoiceRepository : IRepository<Invoice, Guid>
 {
-    Task<Invoice?> GetAsync(Guid id, CancellationToken ct);
-
-    void Add(Invoice invoice);
+    /// <summary>Only Draft invoices may be removed; the command handler enforces this.</summary>
+    void Remove(Invoice invoice);
 }

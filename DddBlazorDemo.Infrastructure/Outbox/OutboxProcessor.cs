@@ -70,7 +70,8 @@ public sealed class OutboxProcessor(
             await using var scope = scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            if (!await TryClaim(db, id, ct)) continue;
+            if (!await TryClaim(db, id, ct)) 
+                continue;
 
             await HandleOne(scope.ServiceProvider, db, id, ct);
         }

@@ -1,43 +1,47 @@
-﻿
-using DddBlazorDemo.Billing.Domain;
 using DddBlazorDemo.SharedKernel;
 
-namespace DddBlazorDemo.Domain.Billing;
+namespace DddBlazorDemo.Billing.Domain;
 
-public sealed class Customer : Entity, IAggregateRoot
+public sealed class Customer : Entity, IAggregateRoot<CustomerId>
 {
     private Customer() { }
-    public Guid Id { get; private set; }
-    public string Name { get; private set; } = "";
-    public EanNumber Gln { get; private set; } = new("00000000");
+    public CustomerId Id { get; private set; }
+    public CustomerName Name { get; private set; } = null!;
+    public VatNumber VatNumber { get; private set; } = null!;
+    public EmailAddress Email { get; private set; } = null!;
+    public PhoneNumber? Phone { get; private set; }
+    public PostalAddress Address { get; private set; } = null!;
     public bool IsActive { get; private set; } = true;
 
-    public static Customer Create(string name, EanNumber gln) => new()
+    public static Customer Create(
+        CustomerName name,
+        VatNumber vatNumber,
+        EmailAddress email,
+        PostalAddress address,
+        PhoneNumber? phone = null)
+        => new()
+        {
+            Id = CustomerId.New(),
+            Name = Guard.NotNull(name, "Customer name"),
+            VatNumber = Guard.NotNull(vatNumber, "VAT number"),
+            Email = Guard.NotNull(email, "Email"),
+            Address = Guard.NotNull(address, "Address"),
+            Phone = phone,
+            IsActive = true
+        };
+
+    public void Rename(CustomerName name) => Name = Guard.NotNull(name, "Customer name");
+
+    public void ChangeContact(EmailAddress email, PhoneNumber? phone)
     {
-        Id = Guid.NewGuid(),
-        Name = Guard.NotBlank(name, "Customer name"),
-        Gln = Guard.NotNull(gln, "Customer GLN")
-    };
-
-    public void Rename(string newName) => Name = Guard.NotBlank(newName, "Customer name");
-
-    public BillTo ToBillTo() => new(Name, Gln);
-}
-
-public sealed record BillTo
-{
-    public const int MaxNameLength = 200;
-    public string Name { get; }
-    public EanNumber Gln { get; }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="gln"></param>
-    public BillTo(string name, EanNumber gln)
-    {
-        Name = Guard.NotBlank(name, "Customer name");
-        Guard.MaxLength(Name, MaxNameLength, "Customer name");
-        Gln = Guard.NotNull(gln, "Customer GLN");
+        Email = Guard.NotNull(email, "Email");
+        Phone = phone;
     }
+
+    public void Relocate(PostalAddress address) => Address = Guard.NotNull(address, "Address");
+
+    public void Deactivate() => IsActive = false;
+    public void Reactivate() => IsActive = true;
+
+    public BillTo ToBillTo() => new(Name, VatNumber, Address);
 }

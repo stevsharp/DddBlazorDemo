@@ -20,7 +20,9 @@ public sealed class OutboxWriter(DomainEventSerializer serializer, DomainEventTy
         if (entities.Count == 0) return 0;
 
         var events = entities.SelectMany(e => e.DomainEvents).ToList();
-        foreach (var e in entities) e.ClearDomainEvents();
+
+        foreach (var e in entities) 
+            e.ClearDomainEvents();
 
         var outbox = db.Set<OutboxMessage>();
         var now = DateTime.UtcNow;

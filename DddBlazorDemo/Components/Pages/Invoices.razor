@@ -1,199 +1,211 @@
-﻿@page "/invoices"
-@inject DddBlazorDemo.Application.Cqrs.IDispatcher Dispatcher
+@page "/invoices"
+@inherits CommandPage
+@inject IDispatcher Dispatcher
 @using DddBlazorDemo.Application.Billing.Queries
 @using DddBlazorDemo.Application.Cqrs
 @using DddBlazorDemo.Application.ReadModels
 @using DddBlazorDemo.Billing.Application.Commands
 @using DddBlazorDemo.Billing.Application.Queries
-@using DddBlazorDemo.SharedKernel
 
-<h5>Customers</h5>
-<div style="margin-bottom: 12px;">
-    <input placeholder="Customer name" @bind="NewCustomerName" />
-    <input placeholder="Customer GLN" @bind="NewCustomerGln" />
-    <button disabled="@IsBusy" @onclick="CreateCustomer">Add customer</button>
-</div>
+<PageHeader Title="Invoices" Subtitle="Draft invoices can take lines; validating one is final and creates a document.">
+    <Actions>
+        <button type="button" class="btn btn-primary" disabled="@(customers.Count == 0)"
+                @onclick="() => form?.SetOpen(true)">+ New invoice</button>
+    </Actions>
+</PageHeader>
 
-<h3>Invoices</h3>
+<StatusBanner IsBusy="IsBusy" Message="@Message" IsError="IsError" OnClose="ClearMessage" />
 
-<div style="margin-bottom: 12px;">
-    <div style="margin-bottom: 12px;">
-        <select @bind="SelectedCustomerId">
-            <option value="">-- choose customer --</option>
-            @foreach (var c in customers)
+@if (customers.Count == 0)
+{
+    <section class="card notice">
+        You need a customer before you can create an invoice.
+        <a href="customers" class="btn btn-sm">Go to Customers</a>
+    </section>
+}
+else
+{
+    <Collapsible @ref="form" Title="New invoice" Hint="Click to open the form">
+        <EditForm Model="Form" OnSubmit="Create" FormName="newInvoice">
+            <fieldset disabled="@IsBusy">
+                <div class="form-grid">
+                    <label class="field span-2">
+                        <span>Customer <em>*</em></span>
+                        <InputSelect @bind-Value="Form.CustomerId">
+                            <option value="">— choose a customer —</option>
+                            @foreach (var c in customers)
+                            {
+                                <option value="@c.Id">@c.Name · @c.VatNumber · @c.City</option>
+                            }
+                        </InputSelect>
+                    </label>
+                    <label class="field">
+                        <span>Invoice number <em>*</em></span>
+                        <InputText @bind-Value="Form.Number" />
+                    </label>
+                    <label class="field">
+                        <span>Currency <em>*</em></span>
+                        <InputText @bind-Value="Form.Currency" maxlength="3" />
+                    </label>
+                    <label class="field span-2">
+                        <span>Provider EAN / GLN <em>*</em></span>
+                        <InputText @bind-Value="Form.ProviderEan" />
+                        <small class="help">GS1 number with a valid check digit, e.g. 7601000237088</small>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create invoice</button>
+                </div>
+            </fieldset>
+        </EditForm>
+    </Collapsible>
+}
+
+<section class="card">
+    <h2 class="card-title">All invoices <span class="count">@invoices.Count</span></h2>
+
+    <DataGrid Items="invoices" RowKey="i => i.Id" EmptyText="No invoices yet.">
+        <GridColumn TItem="InvoiceListItemDto" Title="Number" Value="i => i.Number">
+            <strong>@context.Number</strong>
+        </GridColumn>
+        <GridColumn TItem="InvoiceListItemDto" Title="Provider" Value="i => i.ProviderEan">
+            <code>@context.ProviderEan</code>
+        </GridColumn>
+        <GridColumn TItem="InvoiceListItemDto" Title="Status" Value="i => i.Status">
+            <span class="badge badge-@context.Status.ToLowerInvariant()">@context.Status</span>
+        </GridColumn>
+        <GridColumn TItem="InvoiceListItemDto" Title="Total" Value="i => i.TotalAmount" CssClass="num">
+            @context.TotalAmount.ToString("N2") <span class="muted">@context.CurrencyCode</span>
+        </GridColumn>
+        <GridColumn TItem="InvoiceListItemDto" Title="" CssClass="actions" Sortable="false">
+            @if (context.Status != "Draft")
             {
-                <option value="@c.Id">@c.Name (@c.Gln)</option>
+                <span class="muted">Locked</span>
             }
-        </select>
-        <input placeholder="Invoice number" @bind="NewNumber" />
-        <input placeholder="Provider EAN" @bind="NewProviderEan" />
-        <input placeholder="Currency (EUR)" @bind="NewCurrency" style="width: 90px;" />
-        <button @onclick="Create">Create</button>
-    </div>
-    <input placeholder="Invoice number" @bind="NewNumber" />
-    <input placeholder="Provider EAN" @bind="NewProviderEan" />
-    <input placeholder="Currency (EUR)" @bind="NewCurrency" style="width: 90px;" />
-    <button disabled="@IsBusy" @onclick="Create">Create</button>
-</div>
-
-@if (Message is not null)
-{
-    <div style="padding: 8px 12px; margin-bottom: 12px; border-radius: 4px;
-                    color: @(IsError ? "#842029" : "#0f5132");
-                    background: @(IsError ? "#f8d7da" : "#d1e7dd");
-                    border: 1px solid @(IsError ? "#f5c2c7" : "#badbcc");">
-        @Message
-        <button style="float: right; border: none; background: none; cursor: pointer;"
-                @onclick="() => Message = null">
-            ✕
-        </button>
-    </div>
-}
-
-@if (IsBusy)
-{
-    <div style="padding: 8px 12px; margin-bottom: 12px; color: #555;">
-        ⏳ Please wait…
-    </div>
-}
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Number</th>
-            <th>Provider</th>
-            <th>Status</th>
-            <th>Total</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var i in invoices)
-        {
-            <tr>
-                <td>@i.Number</td>
-                <td>@i.ProviderEan</td>
-                <td>@i.Status</td>
-                <td>@i.TotalAmount @i.CurrencyCode</td>
-                <td>
-                    <button disabled="@IsBusy" @onclick="() => AddLine(i.Id)">Add line</button>
-                    <button disabled="@(IsBusy || i.Status != "Draft")" @onclick="() => Validate(i.Id)">Validate</button>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+            else if (lineFor == context.Id)
+            {
+                @* Inline "add line" editor for this row *@
+                <div class="inline-form">
+                    <input placeholder="Description" @bind="LineDescription" disabled="@IsBusy" />
+                    <input type="number" step="0.01" min="0.01" placeholder="Amount" style="width: 100px"
+                           @bind="LineAmount" disabled="@IsBusy" />
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@IsBusy"
+                            @onclick="() => AddLine(context.Id)">Add</button>
+                    <button type="button" class="btn btn-sm" disabled="@IsBusy"
+                            @onclick="() => lineFor = null">Cancel</button>
+                </div>
+            }
+            else if (confirmFor == context.Id)
+            {
+                @* Two-step confirm: validation cannot be undone *@
+                <span class="confirm">
+                    Validate <strong>@context.Number</strong>? This is final.
+                    <button type="button" class="btn btn-sm btn-danger" disabled="@IsBusy"
+                            @onclick="() => Validate(context.Id)">Yes, validate</button>
+                    <button type="button" class="btn btn-sm" disabled="@IsBusy"
+                            @onclick="() => confirmFor = null">Cancel</button>
+                </span>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm" disabled="@IsBusy"
+                        @onclick="() => OpenLineEditor(context.Id)">+ Line</button>
+                <button type="button" class="btn btn-sm btn-primary"
+                        disabled="@(IsBusy || context.TotalAmount <= 0)"
+                        title="@(context.TotalAmount <= 0 ? "Add at least one line first" : "Validate this invoice")"
+                        @onclick="() => confirmFor = context.Id">Validate</button>
+            }
+        </GridColumn>
+    </DataGrid>
+</section>
 
 @code {
-    private List<InvoiceListItemDto> invoices = new();
-
-    private string NewNumber = "INV-1001";
-    private string NewProviderEan = "7601000237088";
-    private string NewCurrency = "EUR";
-    private bool IsBusy;
-    private List<CustomerListItemDto> customers = new();
-    private string NewCustomerName = "Acme AG";
-    private string NewCustomerGln = "7601000237088";
-    private string SelectedCustomerId = "";
-    private string? Error;
-    private string? Message;
-    private bool IsError;
-
-    protected override async Task OnInitializedAsync() => await Reload();
-
-    private async Task Reload()
+    private sealed class InvoiceForm
     {
-        try
-        {
-            var result = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(
-                new ListInvoicesQuery(), CancellationToken.None);
-
-            invoices = result.ToList();
-
-            var customerResult = await Dispatcher.Query<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>(
-                new ListCustomersQuery(), CancellationToken.None);
-            customers = customerResult.ToList();
-        }
-        catch (Exception ex)
-        {
-            Error = ex.Message;
-            Console.WriteLine(ex);
-        }
-
+        public string CustomerId { get; set; } = "";
+        public string Number { get; set; } = "INV-1001";
+        public string ProviderEan { get; set; } = "7601000237088";
+        public string Currency { get; set; } = "EUR";
     }
 
-    private async Task Run(Func<Task> action, string successMessage)
-    {
-        if (IsBusy) return;
-        IsBusy = true;
-        Message = null;
-        try
-        {
-            await action();
-            await Reload();
-            IsError = false;
-            Message = successMessage;
+    private Collapsible? form;
+    private InvoiceForm Form = new();
+    private List<InvoiceListItemDto> invoices = new();
+    private List<CustomerListItemDto> customers = new();
 
-            var shown = Message;
-            _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() =>
-            {
-                if (Message == shown)
-                {
-                    Message = null;
-                    StateHasChanged();
-                }
-            }));
-            
-        }
-        catch (DomainException ex)        // business rule broken: show its message to the user
-        {
-            IsError = true;
-            Message = ex.Message;
-        }
-        catch (Exception ex)              // unexpected bug: log it, show a generic message
-        {
-            Console.WriteLine(ex);
-            IsError = true;
-            Message = "Something went wrong. Please try again.";
-        }
-        finally
-        {
-            IsBusy = false;               // always runs, success or error
-        }
+    // Row-level UI state
+    private Guid? lineFor;
+    private Guid? confirmFor;
+    private string LineDescription = "";
+    private decimal LineAmount = 50m;
+
+    protected override async Task Reload()
+    {
+        var invoiceResult = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(
+            new ListInvoicesQuery(), CancellationToken.None);
+        invoices = invoiceResult.ToList();
+
+        var customerResult = await Dispatcher.Query<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>(
+            new ListCustomersQuery(), CancellationToken.None);
+        customers = customerResult.ToList();
+    }
+
+    private void OpenLineEditor(Guid invoiceId)
+    {
+        confirmFor = null;
+        lineFor = invoiceId;
+        LineDescription = "";
     }
 
     private Task Create()
     {
-        Error = null;
-
-        if (!Guid.TryParse(SelectedCustomerId, out var customerId))
+        if (!Guid.TryParse(Form.CustomerId, out var customerId))
         {
-            IsError = true;
-            Message = "Choose a customer first.";
+            ShowError("Choose a customer first.");
             return Task.CompletedTask;
         }
 
-        return Run(() => Dispatcher.Send<CreateInvoiceCommand, Guid>(
-                new CreateInvoiceCommand(NewNumber, NewProviderEan, NewCurrency, customerId),
-                CancellationToken.None),  $"Invoice {NewNumber} created.");
+        var number = Form.Number;
+        return Run(async () =>
+            {
+                await Dispatcher.Send<CreateInvoiceCommand, Guid>(
+                    new CreateInvoiceCommand(Form.Number, Form.ProviderEan, Form.Currency, customerId),
+                    CancellationToken.None);
 
+                Form = new InvoiceForm { CustomerId = Form.CustomerId, Number = NextNumber(Form.Number) };
+                form?.SetOpen(false);
+            },
+            $"Invoice {number} created.");
     }
 
-    private Task AddLine(Guid invoiceId) => Run(() => Dispatcher.Send<AddInvoiceLineCommand, Unit>(
-        new AddInvoiceLineCommand(invoiceId, "Service", 50m), CancellationToken.None),
-    "Line added.");
-
-    private Task Validate(Guid invoiceId) => Run(() => Dispatcher.Send<ValidateInvoiceCommand, Unit>(
-        new ValidateInvoiceCommand(invoiceId), CancellationToken.None),
-    "Invoice validated. The document will appear on the Documents page shortly.");
-
-    private Task CreateCustomer() => Run( async () => 
+    private Task AddLine(Guid invoiceId)
     {
-        var id = await Dispatcher.Send<CreateCustomerCommand, Guid>(
-            new CreateCustomerCommand(NewCustomerName, NewCustomerGln),
-            CancellationToken.None);
-      
-        SelectedCustomerId = id.ToString();
+        var description = LineDescription;
+        var amount = LineAmount;
+        return Run(async () =>
+            {
+                await Dispatcher.Send<AddInvoiceLineCommand, Unit>(
+                    new AddInvoiceLineCommand(invoiceId, description, amount), CancellationToken.None);
+                LineDescription = "";           // keep the editor open for the next line
+            },
+            $"Line \"{description}\" added.");
+    }
 
-    }, $"Customer {NewCustomerName} added.");
+    private Task Validate(Guid invoiceId)
+    {
+        confirmFor = null;
+        return Run(() => Dispatcher.Send<ValidateInvoiceCommand, Unit>(
+                new ValidateInvoiceCommand(invoiceId), CancellationToken.None),
+            "Invoice validated. Its document will appear on the Documents page shortly.");
+    }
+
+    /// <summary>INV-1001 → INV-1002 so the next invoice number is ready without typing.</summary>
+    private static string NextNumber(string current)
+    {
+        var i = current.Length;
+        while (i > 0 && char.IsDigit(current[i - 1])) i--;
+        if (i == current.Length) return current;
+        var digits = current[i..];
+        return current[..i] + (long.Parse(digits) + 1).ToString().PadLeft(digits.Length, '0');
+    }
 }

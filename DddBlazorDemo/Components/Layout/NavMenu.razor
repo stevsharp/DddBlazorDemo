@@ -1,27 +1,30 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">DddBlazorDemo</a>
-    </div>
-</div>
+<a class="brand" href="">
+    <span class="brand-mark">◆</span>
+    <span class="brand-text">
+        <strong>DddBlazorDemo</strong>
+        <small>Billing · Documents</small>
+    </span>
+</a>
 
-<div class="nav-scrollable">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                Home
-            </NavLink>
-        </div>
+<nav class="nav">
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+        <span class="nav-icon">⌂</span> Overview
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="invoices">
-                Invoices
-            </NavLink>
-        </div>
+    <div class="nav-section">Billing</div>
+    <NavLink class="nav-link" href="customers">
+        <span class="nav-icon">◉</span> Customers
+    </NavLink>
+    <NavLink class="nav-link" href="invoices">
+        <span class="nav-icon">▤</span> Invoices
+    </NavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="documents">
-                Documents
-            </NavLink>
-        </div>
-    </nav>
+    <div class="nav-section">Documents</div>
+    <NavLink class="nav-link" href="documents">
+        <span class="nav-icon">▣</span> Documents
+    </NavLink>
+</nav>
+
+<div class="sidebar-footer">
+    DDD · CQRS · Outbox
 </div>

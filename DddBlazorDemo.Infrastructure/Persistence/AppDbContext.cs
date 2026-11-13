@@ -1,6 +1,5 @@
 using DddBlazorDemo.Billing.Domain;
 using DddBlazorDemo.Documents.Domain;
-using DddBlazorDemo.Domain.Billing;
 using DddBlazorDemo.Infrastructure.Outbox;
 
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +31,26 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             v => v.Code,
             v => new Currency(v));
 
+        var customerIdConverter = new ValueConverter<CustomerId, Guid>(
+            v => v.Value,
+            v => new CustomerId(v));
+
+        var customerNameConverter = new ValueConverter<CustomerName, string>(
+            v => v.Value,
+            v => new CustomerName(v));
+
+        var vatNumberConverter = new ValueConverter<VatNumber, string>(
+            v => v.Value,
+            v => new VatNumber(v));
+
+        var emailConverter = new ValueConverter<EmailAddress, string>(
+            v => v.Value,
+            v => new EmailAddress(v));
+
+        var phoneConverter = new ValueConverter<PhoneNumber, string>(
+            v => v.Value,
+            v => new PhoneNumber(v));
+
         modelBuilder.Entity<Invoice>(b =>
         {
             b.ToTable("Billing_Invoices");
@@ -51,13 +70,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasMaxLength(3);
 
             // inside the Invoice block:
-            b.Property(x => x.CustomerId);
+            b.Property(x => x.CustomerId).HasConversion(customerIdConverter);
             b.HasIndex(x => x.CustomerId);
             b.HasOne<Customer>().WithMany().HasForeignKey(x => x.CustomerId); // FK only, no navigation
+            // Snapshot of the customer at creation time; stored in the invoice row.
             b.OwnsOne(x => x.BillTo, ob =>
             {
-                ob.Property(p => p.Name).HasColumnName("BillToName").HasMaxLength(BillTo.MaxNameLength);
-                ob.Property(p => p.Gln).HasConversion(eanConverter).HasColumnName("BillToGln").HasMaxLength(20);
+                ob.Property(p => p.Name)
+                    .HasConversion(customerNameConverter)
+                    .HasColumnName("BillToName")
+                    .HasMaxLength(CustomerName.MaxLength);
+
+                ob.Property(p => p.VatNumber)
+                    .HasConversion(vatNumberConverter)
+                    .HasColumnName("BillToVatNumber")
+                    .HasMaxLength(VatNumber.MaxLength);
+
+                ob.OwnsOne(p => p.Address, ab =>
+                {
+                    ab.Property(a => a.Street).HasColumnName("BillToStreet").HasMaxLength(PostalAddress.MaxStreetLength);
+                    ab.Property(a => a.City).HasColumnName("BillToCity").HasMaxLength(PostalAddress.MaxCityLength);
+                    ab.Property(a => a.PostalCode).HasColumnName("BillToPostalCode").HasMaxLength(PostalAddress.MaxPostalCodeLength);
+                    ab.Property(a => a.CountryCode).HasColumnName("BillToCountryCode").HasMaxLength(PostalAddress.CountryCodeLength);
+                });
             });
 
             b.Property(x => x.Status);
@@ -132,9 +167,37 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             b.ToTable("Billing_Customers");
             b.HasKey(x => x.Id);
-            b.Property(x => x.Id).ValueGeneratedNever();
-            b.Property(x => x.Name).HasMaxLength(200);
-            b.Property(x => x.Gln).HasConversion(eanConverter).HasMaxLength(20);
+            b.Property(x => x.Id).HasConversion(customerIdConverter).ValueGeneratedNever();
+
+            // Single-value value objects: one column each, via converter.
+            b.Property(x => x.Name)
+                .HasConversion(customerNameConverter)
+                .HasMaxLength(CustomerName.MaxLength);
+
+            b.Property(x => x.VatNumber)
+                .HasConversion(vatNumberConverter)
+                .HasMaxLength(VatNumber.MaxLength);
+            b.HasIndex(x => x.VatNumber).IsUnique();
+
+            b.Property(x => x.Email)
+                .HasConversion(emailConverter)
+                .HasMaxLength(EmailAddress.MaxLength);
+
+            b.Property(x => x.Phone)
+                .HasConversion(phoneConverter)
+                .HasMaxLength(PhoneNumber.MaxLength)
+                .IsRequired(false);
+
+            // Multi-value value object: owned, columns in the same table.
+            b.OwnsOne(x => x.Address, ab =>
+            {
+                ab.Property(a => a.Street).HasColumnName("Street").HasMaxLength(PostalAddress.MaxStreetLength);
+                ab.Property(a => a.City).HasColumnName("City").HasMaxLength(PostalAddress.MaxCityLength);
+                ab.Property(a => a.PostalCode).HasColumnName("PostalCode").HasMaxLength(PostalAddress.MaxPostalCodeLength);
+                ab.Property(a => a.CountryCode).HasColumnName("CountryCode").HasMaxLength(PostalAddress.CountryCodeLength);
+            });
+
+            b.Property(x => x.IsActive);
         });
 
         base.OnModelCreating(modelBuilder);

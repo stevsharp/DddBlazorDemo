@@ -1,9 +1,9 @@
-﻿using DddBlazorDemo.Application.Billing.Handlers;
 using DddBlazorDemo.Application.Billing.Queries;
 using DddBlazorDemo.Application.Cqrs;
 using DddBlazorDemo.Application.ReadModels;
 using DddBlazorDemo.Billing.Application;
 using DddBlazorDemo.Billing.Application.Commands;
+using DddBlazorDemo.Billing.Application.Handlers;
 using DddBlazorDemo.Billing.Application.Queries;
 using DddBlazorDemo.Billing.Domain.Events;
 using DddBlazorDemo.Documents.Application;
@@ -38,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+        // Read side: one open-generic registration covers every aggregate
+        services.AddScoped(typeof(IReadOnlyRepository<,>), typeof(EfReadOnlyRepository<,>));
         // Read side
         var mapsterConfig = new TypeAdapterConfig();
         mapsterConfig.Scan(typeof(MapsterConfig).Assembly);

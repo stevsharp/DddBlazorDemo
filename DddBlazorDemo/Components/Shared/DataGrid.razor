@@ -1,0 +1,108 @@
+@typeparam TItem
+
+@* Columns register themselves through the cascaded grid; they render nothing on their own. *@
+<CascadingValue Value="this" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@if (Items.Count == 0)
+{
+    @if (EmptyContent is not null)
+    {
+        @EmptyContent
+    }
+    else
+    {
+        <p class="muted empty-text">@EmptyText</p>
+    }
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                @foreach (var col in columns)
+                {
+                    <th class="@col.CssClass @(col.Sortable ? "sortable" : null)"
+                        @onclick="() => Sort(col)">
+                        @col.Title
+                        @if (sortColumn == col)
+                        {
+                            <span class="sort-indicator">@(sortDescending ? "▼" : "▲")</span>
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in SortedItems())
+            {
+                <tr @key="RowKey?.Invoke(item) ?? item!">
+                    @foreach (var col in columns)
+                    {
+                        <td class="@col.CssClass">@col.Cell(item)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    /// <summary>Rows to show.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>The GridColumn declarations.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Shown instead of the table when Items is empty.</summary>
+    [Parameter] public string EmptyText { get; set; } = "Nothing to show.";
+
+    /// <summary>Richer empty state (icon, call to action). Overrides EmptyText.</summary>
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>Stable key per row so Blazor keeps DOM rows matched when the list changes.</summary>
+    [Parameter] public Func<TItem, object>? RowKey { get; set; }
+
+    private readonly List<GridColumn<TItem>> columns = new();
+    private GridColumn<TItem>? sortColumn;
+    private bool sortDescending;
+    private bool rendered;
+
+    internal void AddColumn(GridColumn<TItem> column)
+    {
+        columns.Add(column);
+        // Columns register during the first render pass, after the table has already been
+        // rendered empty. Ask for one more render so they show up.
+        if (rendered) StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            rendered = true;
+            StateHasChanged();
+        }
+    }
+
+    private void Sort(GridColumn<TItem> col)
+    {
+        if (!col.Sortable || col.Value is null) return;
+
+        if (sortColumn == col) sortDescending = !sortDescending;
+        else { sortColumn = col; sortDescending = false; }
+    }
+
+    private IEnumerable<TItem> SortedItems()
+    {
+        if (sortColumn?.Value is null) return Items;
+
+        var keyed = Items.Select(i => (Item: i, Key: sortColumn.Value(i)));
+        var ordered = sortDescending
+            ? keyed.OrderByDescending(x => x.Key, Comparer<object?>.Default)
+            : keyed.OrderBy(x => x.Key, Comparer<object?>.Default);
+
+        return ordered.Select(x => x.Item);
+    }
+}

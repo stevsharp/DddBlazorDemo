@@ -1,0 +1,37 @@
+@* A card whose body can be folded away, so lists stay the main content. *@
+
+<section class="card">
+    <button type="button" class="collapsible-header" @onclick="Toggle" aria-expanded="@open">
+        <span class="collapsible-chevron">@(open ? "▾" : "▸")</span>
+        <span class="collapsible-title">@Title</span>
+        @if (Hint is not null && !open)
+        {
+            <span class="collapsible-hint">@Hint</span>
+        }
+    </button>
+
+    @if (open)
+    {
+        <div class="collapsible-body">@ChildContent</div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool open;
+    private bool initialised;
+
+    protected override void OnParametersSet()
+    {
+        if (!initialised) { open = Open; initialised = true; }
+    }
+
+    /// <summary>Lets the page open or close the panel, e.g. open it when there is nothing in the list yet.</summary>
+    public void SetOpen(bool value) { open = value; StateHasChanged(); }
+
+    private void Toggle() => open = !open;
+}

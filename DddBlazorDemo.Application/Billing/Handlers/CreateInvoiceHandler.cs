@@ -13,10 +13,10 @@ public sealed class CreateInvoiceHandler(
     public async Task<Guid> Handle(CreateInvoiceCommand command, 
         CancellationToken ct)
     {
-        var customer = await customers.GetAsync(command.CustomerId, ct)
+        var customer = await customers.GetAsync(new CustomerId(command.CustomerId), ct)
             ?? throw new DomainException($"Customer with id {command.CustomerId} not found.");
 
-        Guard.That(customer.IsActive, nameof(command.CustomerId));   
+        Guard.That(customer.IsActive, "Cannot invoice an inactive customer.");
 
         var invoice = Invoice.Create(
             new InvoiceNumber(command.Number),

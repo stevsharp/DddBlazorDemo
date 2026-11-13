@@ -1,0 +1,52 @@
+@typeparam TItem
+
+@* Renders nothing: it only describes a column to the parent DataGrid. *@
+
+@code {
+    [CascadingParameter] public DataGrid<TItem> Grid { get; set; } = default!;
+
+    /// <summary>Header text.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>Picks the value for the cell. Used for display (when no template) and for sorting.</summary>
+    [Parameter] public Func<TItem, object?>? Value { get; set; }
+
+    /// <summary>Optional .NET format string applied to Value, e.g. "N2" or "g".</summary>
+    [Parameter] public string? Format { get; set; }
+
+    /// <summary>Custom cell content; receives the row as @context. Overrides Value for display.</summary>
+    [Parameter] public RenderFragment<TItem>? ChildContent { get; set; }
+
+    /// <summary>Extra CSS class for header and cells, e.g. "num" to right-align.</summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    /// <summary>Allow click-to-sort on the header. Needs Value.</summary>
+    [Parameter] public bool Sortable { get; set; } = true;
+
+    protected override void OnInitialized()
+    {
+        if (Grid is null)
+            throw new InvalidOperationException($"{nameof(GridColumn<TItem>)} must be placed inside a {nameof(DataGrid<TItem>)}.");
+
+        Grid.AddColumn(this);
+    }
+
+    internal RenderFragment Cell(TItem item) => builder =>
+    {
+        if (ChildContent is not null)
+        {
+            builder.AddContent(0, ChildContent(item));
+            return;
+        }
+
+        var value = Value?.Invoke(item);
+        var text = value switch
+        {
+            null => "—",
+            IFormattable f when Format is not null => f.ToString(Format, null),
+            bool b => b ? "Yes" : "No",
+            _ => value.ToString()
+        };
+        builder.AddContent(1, text);
+    };
+}

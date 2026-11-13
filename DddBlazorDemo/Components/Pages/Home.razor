@@ -1,8 +1,66 @@
 @page "/"
+@inject IDispatcher Dispatcher
+@using DddBlazorDemo.Application.Billing.Queries
+@using DddBlazorDemo.Application.Cqrs
+@using DddBlazorDemo.Application.ReadModels
+@using DddBlazorDemo.Billing.Application.Queries
+@using DddBlazorDemo.Documents.Application.Queries
 
-<h1>DDD + CQRS + Outbox + Mapster</h1>
+<PageHeader Title="Overview" Subtitle="A small DDD / CQRS / Outbox demo. Follow the steps below to see the whole flow." />
 
-<ul>
-    <li><a href="invoices">Invoices</a></li>
-    <li><a href="documents">Documents</a></li>
-</ul>
+<div class="stat-row">
+    <a class="stat" href="customers">
+        <span class="stat-value">@(customers?.Count.ToString() ?? "–")</span>
+        <span class="stat-label">Customers</span>
+    </a>
+    <a class="stat" href="invoices">
+        <span class="stat-value">@(invoices?.Count(i => i.Status == "Draft").ToString() ?? "–")</span>
+        <span class="stat-label">Draft invoices</span>
+    </a>
+    <a class="stat" href="invoices">
+        <span class="stat-value">@(invoices?.Count(i => i.Status == "Validated").ToString() ?? "–")</span>
+        <span class="stat-label">Validated invoices</span>
+    </a>
+    <a class="stat" href="documents">
+        <span class="stat-value">@(documents?.Count.ToString() ?? "–")</span>
+        <span class="stat-label">Documents</span>
+    </a>
+</div>
+
+<section class="card">
+    <h2 class="card-title">How the demo flows</h2>
+    <ol class="steps">
+        <li>
+            <strong>Create a customer</strong> on <a href="customers">Customers</a>.
+            Every field is a value object that validates itself (VAT, email, address…).
+        </li>
+        <li>
+            <strong>Create an invoice</strong> on <a href="invoices">Invoices</a> for that customer.
+            The invoice stores a <em>Bill-To snapshot</em>, so later edits to the customer don't change it.
+        </li>
+        <li>
+            <strong>Add lines</strong> while the invoice is Draft. The total is computed by the aggregate.
+        </li>
+        <li>
+            <strong>Validate</strong> the invoice. This raises <code>InvoiceValidated</code>, which is written
+            to the outbox in the same transaction.
+        </li>
+        <li>
+            The outbox processor picks it up and the Documents context <strong>creates a document</strong>.
+            See it on <a href="documents">Documents</a> after a second or two.
+        </li>
+    </ol>
+</section>
+
+@code {
+    private IReadOnlyList<CustomerListItemDto>? customers;
+    private IReadOnlyList<InvoiceListItemDto>? invoices;
+    private IReadOnlyList<DocumentListItemDto>? documents;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await Dispatcher.Query<ListCustomersQuery, IReadOnlyList<CustomerListItemDto>>(new(), CancellationToken.None);
+        invoices = await Dispatcher.Query<ListInvoicesQuery, IReadOnlyList<InvoiceListItemDto>>(new(), CancellationToken.None);
+        documents = await Dispatcher.Query<ListDocumentsQuery, IReadOnlyList<DocumentListItemDto>>(new(), CancellationToken.None);
+    }
+}

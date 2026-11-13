@@ -22,7 +22,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+// .NET 9 static assets: fingerprinted URLs (app.<hash>.css) so browsers never serve a stale stylesheet.
+app.MapStaticAssets();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
