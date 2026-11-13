@@ -1,0 +1,124 @@
+﻿@typeparam TModel where TModel : class
+@typeparam TValue
+@using System.Linq.Expressions
+
+<label class="field @(Span > 1 ? $"span-{Span}" : null)">
+    <span>@Label @if (Required) {
+    <em>*</em>
+        }
+</span>
+
+    @if (Options is not null)
+    {
+        <select value="@ToText(Current)" @onchange="e => Set(e.Value)">
+            <option value="">@Placeholder</option>
+            @foreach (var (value, text) in Options)
+            {
+                <option value="@value">@text</option>
+            }
+        </select>
+    }
+    else if (typeof(TValue) == typeof(bool))
+    {
+        <input type="checkbox" checked="@(Current is true)" @onchange="e => Set(e.Value)" />
+    }
+    else if (typeof(TValue).IsEnum)
+    {
+        <select value="@ToText(Current)" @onchange="e => Set(e.Value)">
+            @foreach (var name in Enum.GetNames(typeof(TValue)))
+            {
+                <option value="@name">@name</option>
+            }
+        </select>
+    }
+    else
+    {
+        <input type="@InputType" value="@ToText(Current)" placeholder="@Placeholder"
+               maxlength="@MaxLength" step="@(IsDecimal ? "0.01" : null)"
+               @onchange="e => Set(e.Value)" />
+    }
+
+    @if (Help is not null)
+    {
+        <small class="help">@Help</small>
+    }
+</label>
+
+@code {
+    [CascadingParameter] public DataForm<TModel> Form { get; set; } = default!;
+    [Parameter, EditorRequired] public Expression<Func<TModel, TValue>> For { get; set; } = default!;
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Help { get; set; }
+    [Parameter] public int Span { get; set; } = 1;
+    [Parameter] public int? MaxLength { get; set; }
+
+    /// <summary>Overrides the inferred input type, e.g. "email", "tel", "date".</summary>
+    [Parameter] public string? Type { get; set; }
+
+    /// <summary>Renders a select with these (value, text) pairs instead of an input.</summary>
+    [Parameter] public IEnumerable<(string Value, string Text)>? Options { get; set; }
+
+    private Func<TModel, TValue> getter = default!;
+    private Action<TModel, TValue> setter = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Form is null)
+            throw new InvalidOperationException($"{nameof(FormField<TModel, TValue>)} must be inside a {nameof(DataForm<TModel>)}.");
+
+        if (For.Body is not MemberExpression member)
+            throw new InvalidOperationException("For must be a simple property access, e.g. m => m.Name.");
+
+        getter = For.Compile();
+
+        // Build (model, value) => model.Prop = value
+        var modelParam = For.Parameters[0];
+        var valueParam = Expression.Parameter(typeof(TValue), "value");
+        setter = Expression.Lambda<Action<TModel, TValue>>(
+            Expression.Assign(member, valueParam), modelParam, valueParam).Compile();
+
+        Label ??= Humanize(member.Member.Name);
+    }
+
+    private TValue Current => getter(Form.Model);
+
+    private bool IsDecimal => typeof(TValue) == typeof(decimal) || typeof(TValue) == typeof(decimal?)
+                           || typeof(TValue) == typeof(double) || typeof(TValue) == typeof(double?);
+
+    private string InputType => Type ?? typeof(TValue) switch
+    {
+        var t when t == typeof(int) || t == typeof(int?) || t == typeof(long) || IsDecimal => "number",
+        var t when t == typeof(DateTime) || t == typeof(DateTime?) || t == typeof(DateOnly) => "date",
+        _ => "text"
+    };
+
+    private void Set(object? raw)
+    {
+        var text = raw?.ToString();
+        var target = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+
+        object? value =
+            typeof(TValue) == typeof(bool) ? raw is true || text == "true" :
+            string.IsNullOrEmpty(text) ? default(TValue) :
+            target.IsEnum ? Enum.Parse(target, text) :
+            target == typeof(DateOnly) ? DateOnly.Parse(text) :
+            Convert.ChangeType(text, target, System.Globalization.CultureInfo.InvariantCulture);
+
+        setter(Form.Model, (TValue)value!);
+    }
+
+    private static string? ToText(TValue? v) => v switch
+    {
+        null => null,
+        DateTime d => d.ToString("yyyy-MM-dd"),
+        DateOnly d => d.ToString("yyyy-MM-dd"),
+        IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+        _ => v.ToString()
+    };
+
+    /// <summary>"PostalCode" → "Postal code"</summary>
+    private static string Humanize(string name) =>
+        string.Concat(name.Select((c, i) => i > 0 && char.IsUpper(c) ? " " + char.ToLower(c) : c.ToString()));
+}

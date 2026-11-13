@@ -1,0 +1,32 @@
+﻿@typeparam TModel where TModel : class
+
+<EditForm Model="Model" OnSubmit="HandleSubmit" FormName="@FormName">
+    <fieldset disabled="@Disabled">
+        <CascadingValue Value="this" IsFixed="true">
+            <div class="form-grid">
+                @ChildContent
+            </div>
+        </CascadingValue>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">@SubmitText</button>
+            @if (OnReset.HasDelegate)
+            {
+                <button type="button" class="btn" @onclick="OnReset">@ResetText</button>
+            }
+        </div>
+    </fieldset>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public TModel Model { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnReset { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string FormName { get; set; } = typeof(TModel).Name;
+    [Parameter] public string SubmitText { get; set; } = "Save";
+    [Parameter] public string ResetText { get; set; } = "Clear";
+    [Parameter] public bool Disabled { get; set; }
+
+    private Task HandleSubmit() => OnSubmit.InvokeAsync();
+}

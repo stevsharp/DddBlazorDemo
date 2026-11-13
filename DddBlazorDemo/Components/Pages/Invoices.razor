@@ -26,38 +26,15 @@
 else
 {
     <Collapsible @ref="form" Title="New invoice" Hint="Click to open the form">
-        <EditForm Model="Form" OnSubmit="Create" FormName="newInvoice">
-            <fieldset disabled="@IsBusy">
-                <div class="form-grid">
-                    <label class="field span-2">
-                        <span>Customer <em>*</em></span>
-                        <InputSelect @bind-Value="Form.CustomerId">
-                            <option value="">— choose a customer —</option>
-                            @foreach (var c in customers)
-                            {
-                                <option value="@c.Id">@c.Name · @c.VatNumber · @c.City</option>
-                            }
-                        </InputSelect>
-                    </label>
-                    <label class="field">
-                        <span>Invoice number <em>*</em></span>
-                        <InputText @bind-Value="Form.Number" />
-                    </label>
-                    <label class="field">
-                        <span>Currency <em>*</em></span>
-                        <InputText @bind-Value="Form.Currency" maxlength="3" />
-                    </label>
-                    <label class="field span-2">
-                        <span>Provider EAN / GLN <em>*</em></span>
-                        <InputText @bind-Value="Form.ProviderEan" />
-                        <small class="help">GS1 number with a valid check digit, e.g. 7601000237088</small>
-                    </label>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create invoice</button>
-                </div>
-            </fieldset>
-        </EditForm>
+
+        <DataForm Model="Form" OnSubmit="Create" SubmitText="Create invoice" Disabled="@IsBusy">
+            <FormField TModel="InvoiceForm" TValue="string" For="m => m.CustomerId" Required Span="2" Label="Customer"
+                       Placeholder="— choose a customer —" Options="CustomerOptions" />
+            <FormField TModel="InvoiceForm" TValue="string" For="m => m.Number" Required Label="Invoice number" />
+            <FormField TModel="InvoiceForm" TValue="string" For="m => m.Currency" Required MaxLength="3" />
+            <FormField TModel="InvoiceForm" TValue="string" For="m => m.ProviderEan" Required Span="2" Label="Provider EAN / GLN" />
+        </DataForm>
+
     </Collapsible>
 }
 
@@ -127,6 +104,9 @@ else
         public string ProviderEan { get; set; } = "7601000237088";
         public string Currency { get; set; } = "EUR";
     }
+
+    private IEnumerable<(string Value, string Text)> CustomerOptions =>
+        customers.Select(c => (c.Id.ToString(), $"{c.Name} · {c.VatNumber} · {c.City}"));
 
     private Collapsible? form;
     private InvoiceForm Form = new();

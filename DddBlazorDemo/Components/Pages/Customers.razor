@@ -15,53 +15,17 @@
 <StatusBanner IsBusy="IsBusy" Message="@Message" IsError="IsError" OnClose="ClearMessage" />
 
 <Collapsible @ref="form" Title="New customer" Hint="Click to open the form" Open="false">
-    <EditForm Model="Form" OnSubmit="CreateCustomer" FormName="newCustomer">
-        <fieldset disabled="@IsBusy">
-            <div class="form-grid">
-                <label class="field span-2">
-                    <span>Name <em>*</em></span>
-                    <InputText @bind-Value="Form.Name" placeholder="Acme AG" />
-                </label>
-                <label class="field">
-                    <span>VAT number <em>*</em></span>
-                    <InputText @bind-Value="Form.VatNumber" placeholder="EL123456789" />
-                </label>
-                <label class="field">
-                    <span>Country <em>*</em></span>
-                    <InputText @bind-Value="Form.CountryCode" maxlength="2" placeholder="GR" />
-                    <small class="help">2-letter ISO code</small>
-                </label>
-
-                <label class="field span-2">
-                    <span>Email <em>*</em></span>
-                    <InputText @bind-Value="Form.Email" type="email" placeholder="billing@acme.example" />
-                </label>
-                <label class="field span-2">
-                    <span>Phone</span>
-                    <InputText @bind-Value="Form.Phone" placeholder="+30 210 1234567" />
-                    <small class="help">Optional</small>
-                </label>
-
-                <label class="field span-2">
-                    <span>Street <em>*</em></span>
-                    <InputText @bind-Value="Form.Street" placeholder="Ermou 1" />
-                </label>
-                <label class="field">
-                    <span>City <em>*</em></span>
-                    <InputText @bind-Value="Form.City" placeholder="Athens" />
-                </label>
-                <label class="field">
-                    <span>Postal code <em>*</em></span>
-                    <InputText @bind-Value="Form.PostalCode" placeholder="10563" />
-                </label>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save customer</button>
-                <button type="button" class="btn" @onclick="() => Form = new()">Clear</button>
-            </div>
-        </fieldset>
-    </EditForm>
+    <DataForm Model="Form" OnSubmit="CreateCustomer" OnReset="() => Form = new()"
+              SubmitText="Save customer" Disabled="@IsBusy">
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.Name" Required Span="2" Placeholder="Acme AG" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.VatNumber" Required Label="VAT number" Placeholder="EL123456789" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.CountryCode" Required Label="Country" MaxLength="2" Help="2-letter ISO code" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.Email" Required Span="2" Type="email" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.Phone" Span="2" Type="tel" Help="Optional" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.Street" Required Span="2" />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.City" Required />
+        <FormField TModel="CustomerForm" TValue="string" For="m => m.PostalCode" Required />
+    </DataForm>
 </Collapsible>
 
 <section class="card">
