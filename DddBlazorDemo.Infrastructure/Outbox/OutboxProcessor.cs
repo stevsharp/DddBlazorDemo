@@ -1,4 +1,4 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Infrastructure.DomainEvents;
 using DddBlazorDemo.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

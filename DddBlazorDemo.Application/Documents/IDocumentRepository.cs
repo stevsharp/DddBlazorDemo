@@ -1,4 +1,5 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Application.Repositories;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Documents.Domain;
 
 namespace DddBlazorDemo.Documents.Application;

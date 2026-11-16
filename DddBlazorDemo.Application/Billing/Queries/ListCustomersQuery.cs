@@ -1,5 +1,5 @@
-﻿
-using DddBlazorDemo.Application.Cqrs;
+
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Application.ReadModels;
 
 namespace DddBlazorDemo.Application.Billing.Queries;

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Cqrs;
 
 /// <summary>
 /// Entry point for the UI. Each command or query runs in its own DI scope so that

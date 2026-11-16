@@ -1,3 +1,3 @@
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Cqrs;
 
 public interface IQuery<out TResult> { }

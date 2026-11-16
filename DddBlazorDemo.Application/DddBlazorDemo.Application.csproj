@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DddBlazorDemo.Cqrs\DddBlazorDemo.Cqrs.csproj" />
     <ProjectReference Include="..\DddBlazorDemo.Domain\DddBlazorDemo.Domain.csproj" />
   </ItemGroup>
 

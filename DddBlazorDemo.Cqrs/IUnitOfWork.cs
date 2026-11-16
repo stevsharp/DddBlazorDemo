@@ -1,4 +1,4 @@
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Cqrs;
 
 public interface IUnitOfWork
 {

@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DddBlazorDemo.Application",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DddBlazorDemo.Infrastructure", "DddBlazorDemo.Infrastructure\DddBlazorDemo.Infrastructure.csproj", "{D8FC21F9-C28E-4505-875B-DD1E539668B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DddBlazorDemo.Cqrs", "DddBlazorDemo.Cqrs\DddBlazorDemo.Cqrs.csproj", "{3C1F2A7E-9B64-4D0A-8E2B-5F7C1D9A6B21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{D8FC21F9-C28E-4505-875B-DD1E539668B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8FC21F9-C28E-4505-875B-DD1E539668B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8FC21F9-C28E-4505-875B-DD1E539668B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C1F2A7E-9B64-4D0A-8E2B-5F7C1D9A6B21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C1F2A7E-9B64-4D0A-8E2B-5F7C1D9A6B21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C1F2A7E-9B64-4D0A-8E2B-5F7C1D9A6B21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C1F2A7E-9B64-4D0A-8E2B-5F7C1D9A6B21}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,4 +1,5 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Application.Repositories;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 

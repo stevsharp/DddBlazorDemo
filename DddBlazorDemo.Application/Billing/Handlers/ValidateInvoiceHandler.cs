@@ -1,4 +1,4 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Billing.Application.Commands;
 using DddBlazorDemo.SharedKernel;
 

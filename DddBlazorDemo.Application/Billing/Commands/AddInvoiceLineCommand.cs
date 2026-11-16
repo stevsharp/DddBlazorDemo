@@ -1,4 +1,4 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Cqrs;
 
 namespace DddBlazorDemo.Billing.Application.Commands;
 

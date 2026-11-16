@@ -1,6 +1,7 @@
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.SharedKernel;
 
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Application.Repositories;
 
 /// <summary>
 /// Write side. Returns tracked aggregates for command handlers to mutate.

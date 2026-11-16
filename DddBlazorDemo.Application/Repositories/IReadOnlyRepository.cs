@@ -1,6 +1,6 @@
 using DddBlazorDemo.SharedKernel;
 
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Application.Repositories;
 
 /// <summary>
 /// Read side for query handlers. No tracking, no Add/Remove, never saves.

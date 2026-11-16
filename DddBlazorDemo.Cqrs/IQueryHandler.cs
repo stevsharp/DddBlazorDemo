@@ -1,4 +1,4 @@
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Cqrs;
 
 public interface IQueryHandler<TQuery, TResult>
     where TQuery : IQuery<TResult>

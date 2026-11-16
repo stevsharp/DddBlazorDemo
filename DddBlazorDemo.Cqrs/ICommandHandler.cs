@@ -1,4 +1,4 @@
-namespace DddBlazorDemo.Application.Cqrs;
+namespace DddBlazorDemo.Cqrs;
 
 public interface ICommandHandler<TCommand, TResult>
     where TCommand : ICommand<TResult>

@@ -1,4 +1,4 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Application.DomainEvents;
 using DddBlazorDemo.Billing.Application.Commands;
 using DddBlazorDemo.Billing.Application.Handlers;
@@ -12,7 +12,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddSingleton<IDispatcher, Dispatcher>();
+        services.AddCqrs();
 
         // Command handlers (registered explicitly; no assembly scanning)
         services.AddScoped<ICommandHandler<CreateInvoiceCommand, Guid>, CreateInvoiceHandler>();

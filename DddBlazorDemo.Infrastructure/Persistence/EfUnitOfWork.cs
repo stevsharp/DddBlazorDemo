@@ -1,4 +1,4 @@
-using DddBlazorDemo.Application.Cqrs;
+using DddBlazorDemo.Cqrs;
 using DddBlazorDemo.Infrastructure.Outbox;
 
 namespace DddBlazorDemo.Infrastructure.Persistence;
